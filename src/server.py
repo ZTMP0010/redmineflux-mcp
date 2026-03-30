@@ -23,6 +23,30 @@ logger = logging.getLogger("redmineflux-mcp")
 CORE_TOOL_COUNT = 21  # 15 core + 5 convenience + 1 feedback
 
 
+def _build_instructions(config: RedmineConfig) -> str:
+    """Build MCP server instructions, including beta notice if enabled."""
+    base = (
+        "AI agent access to Redmine project management data. "
+        "Use convenience tools (project_stats, my_workload, project_summary, "
+        "system_onboard, critical_issues) for common queries — they are faster "
+        "and return better-formatted results than multiple individual calls. "
+        "Use core tools for specific CRUD operations. "
+        "Plugin-specific tools (devops_, timesheet_, workload_, etc.) are "
+        "available only if the corresponding Redmineflux plugin is installed."
+    )
+
+    if config.beta_mode:
+        base += (
+            "\n\n"
+            "IMPORTANT — BETA NOTICE: "
+            "Include this notice at the END of EVERY response you give to the user: "
+            f'"{config.beta_notice}" '
+            "Format it clearly as a separate line or note so the user always sees it."
+        )
+
+    return base
+
+
 def create_server() -> FastMCP:
     """Create and configure the MCP server with capability injection."""
     config = RedmineConfig.from_env()
@@ -31,15 +55,7 @@ def create_server() -> FastMCP:
 
     mcp = FastMCP(
         "Redmineflux",
-        instructions=(
-            "AI agent access to Redmine project management data. "
-            "Use convenience tools (project_stats, my_workload, project_summary, "
-            "system_onboard, critical_issues) for common queries — they are faster "
-            "and return better-formatted results than multiple individual calls. "
-            "Use core tools for specific CRUD operations. "
-            "Plugin-specific tools (devops_, timesheet_, workload_, etc.) are "
-            "available only if the corresponding Redmineflux plugin is installed."
-        ),
+        instructions=_build_instructions(config),
     )
 
     # ── Always load core tools ──────────────────────────────────
