@@ -33,6 +33,32 @@ Redmine holds the data. Redmineflux plugins enrich it. The MCP server makes it a
 
 ---
 
+## Why a Standalone Service? Why Python?
+
+If you're a Redmineflux customer, you're used to plugins: drop into `plugins/`, run migrations, restart Redmine, done. So why is the MCP server different?
+
+**MCP servers and Redmine plugins serve different audiences through different protocols.** A Redmine plugin renders HTML for humans in browsers over HTTP. An MCP server streams structured data to AI agents over stdio/SSE. These are fundamentally different runtime models — combining them would compromise both.
+
+| Factor | Redmine Plugin (Ruby) | MCP Server (Python) |
+|--------|----------------------|---------------------|
+| **Serves** | Humans via browsers | AI agents via MCP protocol |
+| **Protocol** | HTTP request/response | stdio streams / server-sent events |
+| **Lifecycle** | Tied to Redmine process | Independent — update without restarting Redmine |
+| **MCP SDK** | Does not exist for Ruby | Official Anthropic SDK (`mcp` package) |
+| **Ecosystem** | 0 MCP reference servers | 100+ MCP reference servers |
+
+**Why Python specifically:**
+- **Official SDK** — Anthropic maintains the MCP Python SDK. Protocol changes are handled upstream. A Ruby implementation would mean building and maintaining the protocol from scratch.
+- **Ecosystem** — every major MCP server (GitHub, Slack, Notion, Linear) is Python or TypeScript. Customers using AI agents already expect this pattern.
+- **Async HTTP** — Python's httpx provides native async/await for efficient Redmine API communication.
+- **AI/ML ready** — if we add features like embeddings or summarization later, the Python ecosystem is already there.
+
+**Your Redmine stays untouched.** The MCP server is a *companion service* that connects to Redmine through its standard REST API — the same API your browser uses. No database access, no Redmine internals, no risk to your existing setup.
+
+> For the full architectural decision record, see the [Decision Document](https://github.com/zehntech/redmineflux-mcp/wiki/DECISION-MCP-EXTERNAL-ARCHITECTURE).
+
+---
+
 ## Key Features
 
 - **51 MCP Tools** — full CRUD for issues, projects, time entries, users, versions, plus plugin-specific tools for DevOps, Timesheet, Workload, Agile Board, and Knowledge Base
@@ -163,6 +189,99 @@ cp .env.example .env
 
 The server communicates over **stdio** (standard MCP transport). Any MCP-compatible AI agent can connect using the same command.
 
+### 5. Auto-Start on Boot (Optional)
+
+If you're running the MCP server on a shared team server, you'll want it to start automatically.
+
+**Linux (systemd):**
+
+Create `/etc/systemd/system/redmineflux-mcp.service`:
+
+```ini
+[Unit]
+Description=Redmineflux MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=redmine
+WorkingDirectory=/opt/redmineflux-mcp
+ExecStart=/opt/redmineflux-mcp/.venv/bin/python -m src.server
+EnvironmentFile=/opt/redmineflux-mcp/.env
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable redmineflux-mcp
+sudo systemctl start redmineflux-mcp
+
+# Check status
+sudo systemctl status redmineflux-mcp
+```
+
+**macOS (launchd):**
+
+Create `~/Library/LaunchAgents/com.redmineflux.mcp.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.redmineflux.mcp</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/redmineflux-mcp/.venv/bin/python</string>
+        <string>-m</string>
+        <string>src.server</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/opt/redmineflux-mcp</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>REDMINE_URL</key>
+        <string>https://redmine.example.com</string>
+        <key>REDMINE_API_KEY</key>
+        <string>your_api_key</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/var/log/redmineflux-mcp.log</string>
+    <key>StandardErrorPath</key>
+    <string>/var/log/redmineflux-mcp.error.log</string>
+</dict>
+</plist>
+```
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.redmineflux.mcp.plist
+
+# Check status
+launchctl list | grep redmineflux
+```
+
+**Docker:**
+
+```bash
+docker run -d --name redmineflux-mcp \
+  --restart unless-stopped \
+  -e REDMINE_URL=https://redmine.example.com \
+  -e REDMINE_API_KEY=your_api_key \
+  redmineflux/mcp-server:latest
+```
+
+> **Note:** For Claude Code's `.mcp.json` integration, auto-start is not needed — Claude Code launches the MCP server process automatically when it connects. Auto-start is for shared team servers where the MCP server runs as an HTTP/SSE endpoint for multiple agents.
+
 ---
 
 ## Usage
@@ -251,6 +370,9 @@ Yes. The server respects Redmine's permission model — users only see data they
 **Q: What about audit logging?**
 Every tool call is logged as JSON Lines in the `logs/` directory with session ID, user identity, tool name, parameters, timing, and result status. Sensitive fields are redacted automatically.
 
+**Q: Can I see MCP activity inside Redmine?**
+A Redmine dashboard plugin is planned (Phase 6) that will show connection status, agent activity feed, and usage statistics directly in the Redmine UI. The MCP server itself remains external — the dashboard reads its audit logs.
+
 ---
 
 ## Roadmap
@@ -261,8 +383,22 @@ Every tool call is logged as JSON Lines in the `logs/` directory with session ID
 | **Phase 2** | Capability injection system | **Done** |
 | **Phase 3** | DevOps + Timesheet + Workload + Agile + KB (30 tools) | **Done** |
 | **Phase 4** | CRM + Testcase Management | Planned |
-| **Phase 5** | Helpdesk + Dashboard | Planned |
-| **Phase 6** | PyPI packaging | Planned |
+| **Phase 5** | Helpdesk + Dashboard plugin tools | Planned |
+| **Phase 6** | MCP Dashboard — Redmine plugin for monitoring MCP activity | Planned |
+| **Phase 7** | PyPI packaging | Planned |
+
+### Phase 6 Preview: MCP Dashboard Plugin
+
+A lightweight Redmine plugin (`redmineflux_mcp_dashboard`) that gives project managers and admins visibility into how AI agents are interacting with their Redmine data — without leaving the Redmine UI.
+
+**Planned features:**
+- **Connection status** — is the MCP server online? Last heartbeat, uptime, version
+- **Live activity feed** — recent tool calls: who asked what, which tool, when, how long
+- **Usage dashboard** — calls per day, most-used tools, busiest projects, response times
+- **Agent sessions** — which AI agents connected, session duration, tools used per session
+- **Audit log viewer** — searchable view of the MCP server's JSON Lines audit logs
+
+This plugin reads the MCP server's audit logs — it does NOT embed MCP functionality into Redmine. The MCP server remains a standalone Python service; the dashboard is a read-only window into its activity.
 
 ---
 
