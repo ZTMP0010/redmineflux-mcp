@@ -169,7 +169,17 @@ cp .env.example .env
 
 ### 4. Connect to Your AI Agent
 
-**Claude Code** — add to your project's `.mcp.json`:
+**Option A: Generate config automatically (recommended for teams)**
+
+```bash
+python3 -m src.setup
+```
+
+This auto-detects the install path and generates a ready-to-use `.mcp.json`. Admin runs it once, sends the output to the team — each person just replaces `YOUR_API_KEY` with their own Redmine API key.
+
+**Option B: Manual setup**
+
+Add to your project's `.mcp.json`:
 
 ```json
 {
@@ -186,6 +196,8 @@ cp .env.example .env
   }
 }
 ```
+
+> **Finding your API key:** Redmine → My Account → API access key (right sidebar) → Show
 
 The server communicates over **stdio** (standard MCP transport). Any MCP-compatible AI agent can connect using the same command.
 
@@ -303,6 +315,48 @@ AI:  Logged 4.0h on issue #50 (entry id=1846)
 You: I just joined the team, where do I start?
 AI:  Welcome! You're assigned to 3 projects with 42 open issues...
 ```
+
+---
+
+## Access Control & Permissions
+
+The MCP server respects Redmine's permission model. **You only see what your API key allows.**
+
+Each person connects with their own Redmine API key. That key inherits the same permissions as their Redmine user account — same projects, same roles, same visibility. If you can't see a project in Redmine's web UI, you won't see it through the MCP server either.
+
+### What Happens When You Don't Have Access
+
+The server handles permission issues gracefully with clear messages:
+
+```
+You: Show me the status of the Secret-Project
+AI:  Not found: project 'Secret-Project' does not exist, or you don't have
+     permission to see it. Redmine returns 404 for both missing resources and
+     resources you lack access to. Verify the ID is correct, or ask your
+     Redmine administrator for access.
+
+You: List all users
+AI:  Access denied: you don't have permission to view users. Your API key
+     only provides access to resources your Redmine account has been granted.
+     Listing all users requires an admin API key. To see what you DO have
+     access to, try listing your projects or checking your current user details.
+```
+
+### Common Scenarios
+
+| Scenario | What Happens |
+|----------|-------------|
+| User asks about a project they're not a member of | Clear "not found or no access" message with suggestion to request access |
+| User tries to list all users (non-admin key) | Explains that user listing requires admin privileges |
+| User tries to create an issue in a project they can only view | Explains the role limitation and suggests asking for a higher role |
+| User asks "what projects do I have?" | Works — returns only projects their key has access to |
+| User's API key is expired or invalid | Clear authentication error with instructions to get a new key |
+
+### Best Practices for Admins
+
+- **Give each person their own API key** — don't share a single admin key. This ensures audit logs show who did what, and each person only sees their projects.
+- **Use the setup script** (`python3 -m src.setup`) to generate the config with your Redmine URL pre-filled. Send it to the team — they just add their own API key.
+- **Admin keys see everything** — only use admin keys for system-level agents (CI/CD bots, reporting agents), not for individual team members.
 
 ---
 
