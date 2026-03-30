@@ -2,7 +2,10 @@
 """Role-based scenario tests for Redmineflux MCP Server.
 
 Tests real-world scenarios that different roles would perform through
-natural language via Claude + MCP tools. Each scenario has:
+natural language via Claude + MCP tools. 51 scenarios across 10+ roles,
+including 10 access control / permission denial scenarios.
+
+Each scenario has:
   - A natural language question (what a human would ask)
   - Expected tools to be called
   - Validation criteria for the response
@@ -455,6 +458,100 @@ SCENARIOS = [
             "4. Generate a brief daily summary for the team."
         ),
         "validate": ["issue", "critical"],
+    },
+    # ── ACCESS CONTROL & PERMISSION DENIAL ─────────────────
+    {
+        "role": "Developer",
+        "name": "ACL: Project they are not a member of",
+        "prompt": (
+            "Show me the status of the 'top-secret-project' project. "
+            "Give me issue counts and milestone dates."
+        ),
+        "validate": ["not found", "permission"],
+    },
+    {
+        "role": "Developer",
+        "name": "ACL: Issue that does not exist or no access",
+        "prompt": (
+            "Show me the full details of issue #99999. "
+            "I need to check its status and who is assigned."
+        ),
+        "validate": ["not found"],
+    },
+    {
+        "role": "Marketing",
+        "name": "ACL: Cross-project query with partial access",
+        "prompt": (
+            "I'm from marketing. Compare the issue status across ALL projects in the company. "
+            "How many are open vs closed in each? "
+            "Note: I may not have access to all projects."
+        ),
+        "validate": ["project"],
+    },
+    {
+        "role": "New Joiner",
+        "name": "ACL: First day orientation with limited access",
+        "prompt": (
+            "I just joined the company today, my name is Test User. "
+            "What projects do I have access to? What issues are assigned to me? "
+            "I'm not sure if my account has been fully set up yet."
+        ),
+        "validate": ["project"],
+    },
+    {
+        "role": "Developer",
+        "name": "ACL: Create issue in project without write access",
+        "prompt": (
+            "Create a Bug issue in the 'restricted-project' project with subject "
+            "'Test bug for access control' and assign it to user ID 1."
+        ),
+        "validate": ["not found", "permission"],
+    },
+    {
+        "role": "Developer",
+        "name": "ACL: Version listing for inaccessible project",
+        "prompt": (
+            "Show me all milestones and version dates for the 'classified-ops' project. "
+            "When is their next release?"
+        ),
+        "validate": ["not found", "permission"],
+    },
+    {
+        "role": "Contractor",
+        "name": "ACL: Time entries for another user (restricted)",
+        "prompt": (
+            "Show me all time entries logged by user ID 999 across all projects this month. "
+            "I need to check their hours for the billing report."
+        ),
+        "validate": ["time"],
+    },
+    {
+        "role": "Developer",
+        "name": "ACL: Update issue in read-only project",
+        "prompt": (
+            "Update issue #99999 in the restricted project — set it to 'In Progress' "
+            "and add a note 'Starting work on this'. Also update done ratio to 30%."
+        ),
+        "validate": ["not found", "permission"],
+    },
+    {
+        "role": "Developer",
+        "name": "ACL: Graceful handling then recovery",
+        "prompt": (
+            "First show me the status of 'nonexistent-project'. "
+            "If that doesn't work, show me what projects I DO have access to instead."
+        ),
+        "validate": ["project"],
+    },
+    {
+        "role": "PM",
+        "name": "ACL: Admin operation with non-admin key",
+        "prompt": (
+            "List all registered users in the system — "
+            "I need the full team directory with emails. "
+            "Then show me which users are locked or inactive."
+        ),
+        "validate": ["user"],
     },
 ]
 
