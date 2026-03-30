@@ -1,0 +1,89 @@
+# ====================================================================
+# OS
+# ====================================================================
+.DS_Store
+*.swp
+*~
+
+# ====================================================================
+# IDE
+# ====================================================================
+.idea/
+.vscode/
+*.code-workspace
+
+# ====================================================================
+# Python
+# ====================================================================
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ====================================================================
+# Test artifacts
+# ====================================================================
+test-results-*.json
+logs/
+
+# ====================================================================
+# Secrets
+# ====================================================================
+*.key
+
+# ====================================================================
+# Claude local settings
+# ====================================================================
+.claude/
+
+# ====================================================================
+# PROPRIETARY — Do NOT commit to shared repo
+# Per: ~/project/hyper/documents/REDMINEFLUX-GIT-POLICY.md
+# ====================================================================
+
+# AI development instructions
+CLAUDE.md
+TODO.md
+HANDOFF.md
+
+# SDD process
+backlog/
+awp/
+
+# Specifications (proprietary process)
+specs/
+
+# Session data
+doc/SESSION-*.md
+doc/MVP-COMPLETION-REPORT.md
+doc/MANUAL-TEST-PLAN.md
+doc/CODE-QUALITY-STANDARDS.md
+BUGS.md
+
+# HyperRelay
+relays/
+HYPERRELAY.md
+.????????????????.json
+
+# Internal process documents
+documents/SPEC-TEMPLATE-*.md
+documents/quality-gate-process.md
+documents/security-rules.md
+documents/SETUP.md
+
+# Development infrastructure (internal docs, research, scripts)
+docs/
+scripts/
+
+# Docker test infrastructure
+docker-compose.yml
+docker-compose.test.yml
+docker-compose.redmine6.yml
+
+# Internal automation
+install.sh

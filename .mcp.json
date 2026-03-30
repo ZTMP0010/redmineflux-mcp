@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "redmineflux": {
+      "command": "python3",
+      "args": ["-m", "src.server"],
+      "cwd": "/Users/Mahen/project/redmineflux/redmineflux-mcp",
+      "env": {
+        "REDMINE_URL": "http://localhost:3000",
+        "REDMINE_API_KEY": "9041d40945d754c1c71c37d647d3802e6bb5c2da"
+      }
+    }
+  }
+}
