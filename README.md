@@ -390,6 +390,25 @@ AI:  Access denied: you don't have permission to view users. Your API key
 
 ---
 
+## Security
+
+The MCP server uses **stdio transport** — it runs as a local process with no network endpoint.
+
+| Question | Answer |
+|----------|--------|
+| Can someone DDoS the MCP server? | **No.** There is no port, no URL, no socket. Nothing to send traffic to. |
+| Can someone intercept the communication? | **No.** stdio is a local pipe between two processes. Not on the network. |
+| What network calls does it make? | Outbound HTTPS only — from the MCP server to your Redmine REST API. |
+| Where does my API key go? | Stays local. Loaded from `.env`, used in Redmine API calls. Never sent to Anthropic. |
+| Does my data go to the cloud? | Your questions and Redmine data pass through Anthropic's Claude API for AI reasoning. The MCP server itself stores nothing in the cloud. |
+| What's the attack surface? | **Zero** for the MCP server. Your Redmine instance's existing HTTPS exposure is unchanged. |
+
+**Best practices:** Use personal API keys (not shared admin keys), keep `.env` out of git, revoke keys immediately if compromised.
+
+For the full security analysis, see [How MCP Routing Works](docs/HOW-MCP-ROUTING-WORKS.md).
+
+---
+
 ## Works With
 
 | Plugin | Integration |
