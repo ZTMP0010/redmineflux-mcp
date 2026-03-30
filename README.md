@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white" alt="Python 3.12+" />
   <img src="https://img.shields.io/badge/MCP-1.26-blueviolet" alt="MCP SDK" />
   <img src="https://img.shields.io/badge/Redmine-5.x%20%7C%206.x-red?logo=ruby&logoColor=white" alt="Redmine" />
-  <img src="https://img.shields.io/badge/Version-0.1.0-green" alt="Version 0.1.0" />
+  <img src="https://img.shields.io/badge/Version-0.2.0--beta-yellow" alt="Version 0.2.0-beta" />
   <img src="https://img.shields.io/badge/License-Commercial-lightgrey" alt="License" />
 </p>
 
@@ -429,6 +429,26 @@ A Redmine dashboard plugin is planned (Phase 6) that will show connection status
 
 ---
 
+## Beta Mode
+
+The MCP server ships with beta mode enabled by default. When active, every AI response includes a notice directing users to report issues:
+
+> *This is a BETA version of Redmineflux MCP Server. If you encounter any issues or have feedback, please log a ticket on the 'redmineflux-mcp' project in Redmine.*
+
+This works through the MCP `instructions` field — the AI agent reads it on connect and appends the notice to every response. No tool output is modified.
+
+**Configuration:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDMINEFLUX_BETA` | `true` | Set to `false` to disable the notice |
+| `REDMINEFLUX_FEEDBACK_PROJECT` | `redmineflux-mcp` | Redmine project where users should log feedback |
+| `REDMINEFLUX_BETA_NOTICE` | *(auto-generated)* | Override with a custom message |
+
+To disable beta mode when going to GA: set `REDMINEFLUX_BETA=false` in your `.env` — no code change or restart needed beyond reloading the server.
+
+---
+
 ## Roadmap
 
 | Phase | Scope | Status |
@@ -457,6 +477,16 @@ This plugin reads the MCP server's audit logs — it does NOT embed MCP function
 ---
 
 ## Release Notes
+
+### v0.2.0 (2026-03-30)
+
+- **Beta mode** — configurable notice appended to every AI response, directing users to log feedback tickets. Toggle with `REDMINEFLUX_BETA=true/false`.
+- **Graceful permission handling** — human-readable error messages for 401 (invalid key), 403 (access denied), 404 (not found / no access), and 422 (validation). Explains what went wrong and how to fix it.
+- **Team setup script** — `python3 -m src.setup` auto-generates `.mcp.json` with correct paths. Admin runs once, sends to team.
+- **Access control documentation** — 10 permission denial scenarios (ACL-01 through ACL-10) added to test suite and use cases.
+- **Architecture decision record** — documented why the MCP server is a standalone Python service, not a Redmine plugin.
+- **Auto-start guides** — systemd (Linux), launchd (macOS), and Docker instructions for running as a service.
+- **MCP Dashboard spec** — Phase 6 roadmap for a Redmine plugin that shows MCP activity, agent sessions, and usage stats.
 
 ### v0.1.0 (2026-03-29)
 
