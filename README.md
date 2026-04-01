@@ -452,7 +452,7 @@ A Redmine dashboard plugin is planned (Phase 6) that will show connection status
 
 The MCP server ships with beta mode enabled by default. When active, every AI response includes a notice directing users to report issues:
 
-> *This is a BETA version of Redmineflux MCP Server. If you encounter any issues or have feedback, please log a ticket on the 'redmineflux-mcp' project in Redmine.*
+> *This is a BETA version of Redmineflux MCP Server. If you encounter any issues or have feedback, please log a ticket on the 'ztmcp' project in Redmine.*
 
 This works through the MCP `instructions` field — the AI agent reads it on connect and appends the notice to every response. No tool output is modified.
 
@@ -461,7 +461,7 @@ This works through the MCP `instructions` field — the AI agent reads it on con
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `REDMINEFLUX_BETA` | `true` | Set to `false` to disable the notice |
-| `REDMINEFLUX_FEEDBACK_PROJECT` | `redmineflux-mcp` | Redmine project where users should log feedback |
+| `REDMINEFLUX_FEEDBACK_PROJECT` | `ztmcp` | Redmine project where users should log feedback |
 | `REDMINEFLUX_BETA_NOTICE` | *(auto-generated)* | Override with a custom message |
 
 To disable beta mode when going to GA: set `REDMINEFLUX_BETA=false` in your `.env` — no code change or restart needed beyond reloading the server.
