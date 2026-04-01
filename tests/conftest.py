@@ -1,11 +1,17 @@
-"""Shared fixtures for Redmineflux MCP integration tests."""
+"""Shared fixtures for Redmineflux MCP integration tests.
+
+Requires REDMINE_URL and REDMINE_API_KEY env vars pointing to a Docker
+Redmine instance with seed data. See docker-compose.yml and scripts/seed_redmine.py.
+"""
 
 import os
 import pytest
 
 # Set env vars before importing server modules
 os.environ.setdefault("REDMINE_URL", "http://localhost:3000")
-os.environ.setdefault("REDMINE_API_KEY", "9041d40945d754c1c71c37d647d3802e6bb5c2da")
+# API key must be provided via env var — no default to avoid leaking keys
+if "REDMINE_API_KEY" not in os.environ:
+    pytest.skip("REDMINE_API_KEY not set — skipping integration tests", allow_module_level=True)
 
 from src.server import create_server
 

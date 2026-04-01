@@ -12,7 +12,7 @@ Architecture:
 
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable
 
 from .redmine_client import RedmineClient

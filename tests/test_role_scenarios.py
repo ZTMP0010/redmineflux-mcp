@@ -615,16 +615,23 @@ async def run_scenario(client, server, tools, scenario):
 async def main():
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        # Try reading from file
-        key_file = "/Users/Mahen/project/hypersignal/data/anthropic-api.key"
-        if os.path.exists(key_file):
-            with open(key_file) as f:
-                content = f.read().strip()
-                # Parse ANTHROPIC-API="sk-ant-..."
-                if "=" in content:
-                    api_key = content.split("=", 1)[1].strip('"')
+        # Try reading from common key file locations
+        key_paths = [
+            os.path.expanduser("~/.anthropic-api.key"),
+            os.path.expanduser("~/project/hypersignal/data/anthropic-api.key"),
+        ]
+        for key_file in key_paths:
+            if os.path.exists(key_file):
+                with open(key_file) as f:
+                    content = f.read().strip()
+                    if "=" in content:
+                        api_key = content.split("=", 1)[1].strip('"')
+                    else:
+                        api_key = content
+                if api_key:
+                    break
         if not api_key:
-            print("ERROR: ANTHROPIC_API_KEY not set and key file not found")
+            print("ERROR: ANTHROPIC_API_KEY not set. Set env var or place key in ~/.anthropic-api.key")
             sys.exit(1)
 
     print("=" * 70)

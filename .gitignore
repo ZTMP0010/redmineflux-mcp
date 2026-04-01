@@ -40,6 +40,7 @@ logs/
 # Claude local settings
 # ====================================================================
 .claude/
+.mcp.json
 
 # ====================================================================
 # PROPRIETARY — Do NOT commit to shared repo

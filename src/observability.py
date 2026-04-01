@@ -6,19 +6,17 @@ debugging, and feedback collection. Implements RMCP-001.
 
 import json
 import logging
-import os
 import sys
 import time
 import uuid
 from datetime import datetime, timezone
-from functools import wraps
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from .redmine_client import RedmineClient
 
 # Fields that must never appear in logs
-REDACTED_FIELDS = {"api_key", "password", "secret", "token", "key"}
+REDACTED_FIELDS = {"api_key", "password", "secret", "token", "key", "authorization", "apikey"}
 
 
 class AuditLogger:
@@ -50,6 +48,11 @@ class AuditLogger:
                 redacted[k] = "***REDACTED***"
             elif isinstance(v, dict):
                 redacted[k] = self._redact(v)
+            elif isinstance(v, list):
+                redacted[k] = [
+                    self._redact(item) if isinstance(item, dict) else item
+                    for item in v
+                ]
             else:
                 redacted[k] = v
         return redacted
@@ -153,40 +156,43 @@ class AuditLogger:
         self._write_entry(entry)
 
 
-def with_audit(audit_logger: AuditLogger):
-    """Decorator factory that wraps an MCP tool function with audit logging."""
+def install_audit_middleware(mcp: Any, audit_logger: AuditLogger) -> None:
+    """Install server-level middleware that logs ALL tool calls automatically.
 
-    def decorator(fn: Callable) -> Callable:
-        @wraps(fn)
-        async def wrapper(*args, **kwargs):
-            start = time.monotonic()
-            tool_name = fn.__name__
-            input_params = kwargs.copy()
+    This hooks into FastMCP's call_tool path so every tool is audited
+    without needing per-tool decorators. Fixes S-16.
+    """
+    original_call_tool = mcp.call_tool
 
-            try:
-                result = await fn(*args, **kwargs)
-                duration_ms = (time.monotonic() - start) * 1000
-                response_text = result if isinstance(result, str) else str(result)
-                await audit_logger.log_tool_call(
-                    tool_name=tool_name,
-                    input_params=input_params,
-                    response_text=response_text,
-                    duration_ms=duration_ms,
-                    success=True,
-                )
-                return result
-            except Exception as e:
-                duration_ms = (time.monotonic() - start) * 1000
-                await audit_logger.log_tool_call(
-                    tool_name=tool_name,
-                    input_params=input_params,
-                    response_text="",
-                    duration_ms=duration_ms,
-                    success=False,
-                    error=str(e),
-                )
-                raise
+    async def audited_call_tool(name: str, arguments: dict | None = None):
+        start = time.monotonic()
+        input_params = arguments or {}
+        try:
+            result = await original_call_tool(name, arguments)
+            duration_ms = (time.monotonic() - start) * 1000
+            # Extract text from result for summary
+            contents, _ = result if isinstance(result, tuple) else (result, None)
+            response_text = ""
+            if contents and hasattr(contents[0], "text"):
+                response_text = contents[0].text
+            await audit_logger.log_tool_call(
+                tool_name=name,
+                input_params=input_params,
+                response_text=response_text,
+                duration_ms=duration_ms,
+                success=True,
+            )
+            return result
+        except Exception as e:
+            duration_ms = (time.monotonic() - start) * 1000
+            await audit_logger.log_tool_call(
+                tool_name=name,
+                input_params=input_params,
+                response_text="",
+                duration_ms=duration_ms,
+                success=False,
+                error=type(e).__name__,
+            )
+            raise
 
-        return wrapper
-
-    return decorator
+    mcp.call_tool = audited_call_tool

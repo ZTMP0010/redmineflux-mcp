@@ -10,7 +10,7 @@ import logging
 from mcp.server.fastmcp import FastMCP
 
 from .config import RedmineConfig
-from .observability import AuditLogger
+from .observability import AuditLogger, install_audit_middleware
 from .plugin_registry import PLUGIN_MODULES, detect_installed_plugins, load_plugin_modules
 from .redmine_client import RedmineClient
 from .tools.convenience import register_convenience_tools
@@ -89,6 +89,9 @@ def create_server() -> FastMCP:
         len(installed_plugins),
         len(PLUGIN_MODULES),
     )
+
+    # ── Audit middleware: logs ALL tool calls automatically (S-16) ──
+    install_audit_middleware(mcp, audit)
 
     audit.log_session_start()
     logger.info(

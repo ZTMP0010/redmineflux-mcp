@@ -192,19 +192,19 @@ def register_core_tools(mcp: Any, client: RedmineClient) -> None:
             "project_id": project_id,
             "subject": subject,
         }
-        if tracker_id:
+        if tracker_id != 0:
             issue["tracker_id"] = tracker_id
         if description:
             issue["description"] = description
-        if priority_id:
+        if priority_id != 0:
             issue["priority_id"] = priority_id
-        if assigned_to_id:
+        if assigned_to_id != 0:
             issue["assigned_to_id"] = assigned_to_id
-        if status_id:
+        if status_id != 0:
             issue["status_id"] = status_id
-        if estimated_hours:
+        if estimated_hours != 0:
             issue["estimated_hours"] = estimated_hours
-        if parent_issue_id:
+        if parent_issue_id != 0:
             issue["parent_issue_id"] = parent_issue_id
         data = await client.post("/issues.json", json={"issue": issue})
         i = data["issue"]
@@ -241,15 +241,15 @@ def register_core_tools(mcp: Any, client: RedmineClient) -> None:
             issue["subject"] = subject
         if description:
             issue["description"] = description
-        if status_id:
+        if status_id != 0:
             issue["status_id"] = status_id
-        if priority_id:
+        if priority_id != 0:
             issue["priority_id"] = priority_id
-        if assigned_to_id:
+        if assigned_to_id != 0:
             issue["assigned_to_id"] = assigned_to_id
         if done_ratio >= 0:
             issue["done_ratio"] = done_ratio
-        if estimated_hours:
+        if estimated_hours != 0:
             issue["estimated_hours"] = estimated_hours
         if notes:
             issue["notes"] = notes
@@ -353,9 +353,12 @@ def register_core_tools(mcp: Any, client: RedmineClient) -> None:
             limit: Max results (default 25, max 100).
             offset: Pagination offset.
         """
-        params: dict[str, Any] = {"limit": min(limit, 100), "offset": offset}
-        if status != "active":
-            params["status"] = {"active": 1, "registered": 2, "locked": 3, "*": ""}.get(status, 1)
+        params: dict[str, Any] = {"limit": max(1, min(limit, 100)), "offset": offset}
+        status_map = {"active": 1, "registered": 2, "locked": 3}
+        if status == "*":
+            pass  # Omit param entirely — Redmine returns all users
+        elif status != "active":
+            params["status"] = status_map.get(status, 1)
         data = await client.get("/users.json", params=params)
         users = data.get("users", [])
         if not users:
